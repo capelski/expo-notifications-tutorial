@@ -22,13 +22,11 @@ const registerForPushNotificationsAsync = async () => {
             finalStatus = status;
         }
         if (finalStatus !== 'granted') {
-            alert('Failed to get push token for push notification!');
-            return;
+            throw 'Failed to get push token for push notification!';
         }
         token = (await Notifications.getExpoPushTokenAsync()).data;
-        console.log(token);
     } else {
-        alert('Must use physical device for Push Notifications');
+        throw 'Must use physical device for Push Notifications';
     }
 
     if (Platform.OS === 'android') {
@@ -54,13 +52,14 @@ const schedulePushNotification = () =>
     });
 
 export default function App() {
+    const [errorMessage, setErrorMessage] = useState<string>();
     const [expoPushToken, setExpoPushToken] = useState<string>();
     const [notification, setNotification] = useState<Notifications.Notification>();
     const notificationListener = useRef<Subscription>();
     const responseListener = useRef<Subscription>();
 
     useEffect(() => {
-        registerForPushNotificationsAsync().then(setExpoPushToken);
+        registerForPushNotificationsAsync().then(setExpoPushToken).catch(setErrorMessage);
 
         notificationListener.current =
             Notifications.addNotificationReceivedListener(setNotification);
@@ -87,9 +86,15 @@ export default function App() {
                 justifyContent: 'space-around'
             }}
         >
-            <View>
+            <View style={{ alignItems: 'center' }}>
                 <Text>Your expo push token:</Text>
-                <Text selectable={true}>{expoPushToken}</Text>
+                {errorMessage ? (
+                    <Text>{errorMessage}</Text>
+                ) : expoPushToken ? (
+                    <Text selectable={true}>{expoPushToken}</Text>
+                ) : (
+                    <Text>-</Text>
+                )}
             </View>
             <View style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <Text>Title: {notification && notification.request.content.title} </Text>
