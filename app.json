@@ -25,6 +25,8 @@
                 "backgroundColor": "#FFFFFF"
             },
             "package": "expo.notifications.tutorial",
+            "permissions": ["NOTIFICATIONS"],
+            "useNextNotificationsApi": true,
             "versionCode": 1
         },
         "web": {
