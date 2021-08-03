@@ -57,6 +57,29 @@ const schedulePushNotification = () =>
         trigger: { seconds: 2 }
     });
 
+let notificationsHandler: undefined | ((notification: Notifications.Notification) => void);
+const pendingNotifications: Notifications.Notification[] = [];
+
+const notificationReceivedListener = Notifications.addNotificationReceivedListener(
+    (notification) => {
+        if (notificationsHandler !== undefined) {
+            notificationsHandler(notification);
+        } else {
+            pendingNotifications.push(notification);
+        }
+    }
+);
+
+const notificationResponseReceivedListener = Notifications.addNotificationResponseReceivedListener(
+    (response) => {
+        if (notificationsHandler !== undefined) {
+            notificationsHandler(response.notification);
+        } else {
+            pendingNotifications.push(response.notification);
+        }
+    }
+);
+
 export default function App() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [expoPushToken, setExpoPushToken] = useState<string>();
@@ -65,16 +88,18 @@ export default function App() {
     const responseListener = useRef<Subscription>();
 
     useEffect(() => {
+        notificationsHandler = setNotification;
+
+        while (pendingNotifications.length > 0) {
+            const pendingNotification = pendingNotifications.pop()!;
+            notificationsHandler(pendingNotification);
+        }
+
         registerForPushNotificationsAsync().then(setExpoPushToken).catch(setErrorMessage);
 
-        notificationListener.current =
-            Notifications.addNotificationReceivedListener(setNotification);
+        notificationListener.current = notificationReceivedListener;
 
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(
-            (response) => {
-                setNotification(response.notification);
-            }
-        );
+        responseListener.current = notificationResponseReceivedListener;
 
         return () => {
             notificationListener.current &&
