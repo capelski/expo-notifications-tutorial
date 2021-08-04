@@ -2,7 +2,8 @@ import { Subscription } from '@unimodules/core';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Platform, Text, View } from 'react-native';
+import { Button, Platform, ScrollView, Text, View } from 'react-native';
+import JSONTree from 'react-native-json-tree';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -110,15 +111,16 @@ export default function App() {
     }, []);
 
     return (
-        <View
-            style={{
-                flex: 1,
+        <ScrollView
+            style={{ marginVertical: 16 }}
+            contentContainerStyle={{
+                flexGrow: 1,
                 alignItems: 'center',
                 justifyContent: 'space-around'
             }}
         >
-            <View style={{ alignItems: 'center' }}>
-                <Text>Your expo push token:</Text>
+            <View style={{ alignItems: 'center', marginVertical: 16 }}>
+                <Text style={{ fontWeight: 'bold' }}>Your expo push token:</Text>
                 {errorMessage ? (
                     <Text>{errorMessage}</Text>
                 ) : expoPushToken ? (
@@ -127,14 +129,17 @@ export default function App() {
                     <Text>-</Text>
                 )}
             </View>
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <Text>Title: {notification && notification.request.content.title} </Text>
-                <Text>Body: {notification && notification.request.content.body}</Text>
-                <Text>
-                    Data: {notification && JSON.stringify(notification.request.content.data)}
+            <View style={{ width: '100%', marginVertical: 16 }}>
+                <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>
+                    Notification content
                 </Text>
+                {notification ? (
+                    <JSONTree data={JSON.parse(JSON.stringify(notification))} />
+                ) : (
+                    <Text style={{ textAlign: 'center' }}>-</Text>
+                )}
             </View>
             <Button title="Press to schedule a notification" onPress={schedulePushNotification} />
-        </View>
+        </ScrollView>
     );
 }
