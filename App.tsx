@@ -2,7 +2,7 @@ import { Subscription } from '@unimodules/core';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Platform, ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import JSONTree from 'react-native-json-tree';
 
 Notifications.setNotificationHandler({
@@ -139,7 +139,20 @@ export default function App() {
                     <Text style={{ textAlign: 'center' }}>-</Text>
                 )}
             </View>
-            <Button title="Press to schedule a notification" onPress={schedulePushNotification} />
+            <View>
+                <TouchableOpacity
+                    onPress={schedulePushNotification}
+                    style={{ backgroundColor: 'lightgreen', padding: 8, marginVertical: 8 }}
+                >
+                    <Text>Press to schedule a notification</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setNotification(undefined)}
+                    style={{ backgroundColor: 'lightcoral', padding: 8, marginVertical: 8 }}
+                >
+                    <Text style={{ color: 'white', textAlign: 'center' }}>Clear notification</Text>
+                </TouchableOpacity>
+            </View>
         </ScrollView>
     );
 }
