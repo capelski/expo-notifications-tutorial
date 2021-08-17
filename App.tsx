@@ -41,6 +41,10 @@ const registerForPushNotificationsAsync = () => {
                     });
                 }
 
+                /* The user token must be stored on a safe location (one time at least)
+                in order to be retrieved and used as the push notification target later on.
+                As an example of how to, check the firebase branch on this repository */
+
                 return tokenData.data;
             });
     } catch (error) {
