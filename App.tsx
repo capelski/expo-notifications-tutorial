@@ -1,9 +1,18 @@
 import { Subscription } from '@unimodules/core';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
+import firebase from 'firebase';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import JSONTree from 'react-native-json-tree';
+import firebaseConfig from './firebase-config.json';
+
+firebase.initializeApp({
+    apiKey: firebaseConfig.API_KEY,
+    authDomain: firebaseConfig.AUTH_DOMAIN,
+    databaseURL: firebaseConfig.DATABASE_URL,
+    storageBucket: firebaseConfig.STORAGE_BUCKET
+});
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -40,10 +49,6 @@ const registerForPushNotificationsAsync = () => {
                         lightColor: '#FF231F7C'
                     });
                 }
-
-                /* The user token must be stored on a safe location (one time at least)
-                in order to be retrieved and used as the push notification target later on.
-                As an example of how to, check the firebase branch on this repository */
 
                 return tokenData.data;
             });
