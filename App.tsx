@@ -7,7 +7,7 @@ import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native
 import JSONTree from 'react-native-json-tree';
 import firebaseConfig from './firebase-config.json';
 
-firebase.initializeApp({
+const firebaseApp = firebase.initializeApp({
     apiKey: firebaseConfig.API_KEY,
     authDomain: firebaseConfig.AUTH_DOMAIN,
     databaseURL: firebaseConfig.DATABASE_URL,
@@ -138,6 +138,8 @@ export default function App() {
                 Notifications.removeNotificationSubscription(responseListener.current);
 
             authObserver();
+
+            firebaseApp.delete();
         };
     }, []);
 
