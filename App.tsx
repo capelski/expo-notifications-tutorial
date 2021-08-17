@@ -94,20 +94,8 @@ export default function App() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [expoPushToken, setExpoPushToken] = useState<string>();
     const [notification, setNotification] = useState<Notifications.Notification>();
-    const [userAnonymousId, setUerAnonymousId] = useState<string>();
     const notificationListener = useRef<Subscription>();
     const responseListener = useRef<Subscription>();
-
-    const signInAnonymously = () =>
-        firebase
-            .auth()
-            .signInAnonymously()
-            // Successful authentication is handled at onAuthStateChanged
-            .catch((error) => {
-                setErrorMessage(error.message);
-            });
-
-    const signOut = () => firebase.auth().signOut();
 
     useEffect(() => {
         notificationsHandler = setNotification;
@@ -123,21 +111,11 @@ export default function App() {
 
         responseListener.current = notificationResponseReceivedListener;
 
-        const authObserver = firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                setUerAnonymousId(user.uid);
-            } else {
-                setUerAnonymousId(undefined);
-            }
-        });
-
         return () => {
             notificationListener.current &&
                 Notifications.removeNotificationSubscription(notificationListener.current);
             responseListener.current &&
                 Notifications.removeNotificationSubscription(responseListener.current);
-
-            authObserver();
 
             firebaseApp.delete();
         };
@@ -156,7 +134,6 @@ export default function App() {
                 <Text style={{ fontWeight: 'bold' }}>Your expo push token:</Text>
                 <Text selectable={true}>{expoPushToken || '-'}</Text>
             </View>
-
             <View style={{ width: '100%', marginVertical: 16 }}>
                 <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>
                     Notification content
@@ -166,20 +143,6 @@ export default function App() {
                 ) : (
                     <Text style={{ textAlign: 'center' }}>-</Text>
                 )}
-            </View>
-
-            <View style={{ alignItems: 'center', marginVertical: 16 }}>
-                <Text style={{ fontWeight: 'bold' }}>Anonymous user id:</Text>
-                <Text>{userAnonymousId || '-'}</Text>
-
-                <TouchableOpacity
-                    onPress={userAnonymousId ? signOut : signInAnonymously}
-                    style={{ borderColor: 'black', borderWidth: 1, padding: 8, marginVertical: 8 }}
-                >
-                    <Text style={{ color: 'black', textAlign: 'center' }}>
-                        {userAnonymousId ? 'End ' : 'Start '}anonymous session
-                    </Text>
-                </TouchableOpacity>
             </View>
 
             {errorMessage && <Text style={{ color: 'red' }}>{errorMessage}</Text>}
