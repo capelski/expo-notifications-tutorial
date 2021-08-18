@@ -7,12 +7,14 @@ import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native
 import JSONTree from 'react-native-json-tree';
 import firebaseConfig from './firebase-config.json';
 
-const firebaseApp = firebase.initializeApp({
-    apiKey: firebaseConfig.API_KEY,
-    authDomain: firebaseConfig.AUTH_DOMAIN,
-    databaseURL: firebaseConfig.DATABASE_URL,
-    storageBucket: firebaseConfig.STORAGE_BUCKET
-});
+const firebaseApp =
+    firebase.apps[0] || // To prevent Expo Go client errors
+    firebase.initializeApp({
+        apiKey: firebaseConfig.API_KEY,
+        authDomain: firebaseConfig.AUTH_DOMAIN,
+        databaseURL: firebaseConfig.DATABASE_URL,
+        storageBucket: firebaseConfig.STORAGE_BUCKET
+    });
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -57,16 +59,6 @@ const registerForPushNotificationsAsync = () => {
     }
 };
 
-const schedulePushNotification = () =>
-    Notifications.scheduleNotificationAsync({
-        content: {
-            title: "You've got mail! 📬",
-            body: 'Here is the notification body',
-            data: { data: 'goes here' }
-        },
-        trigger: { seconds: 2 }
-    });
-
 let notificationsHandler: undefined | ((notification: Notifications.Notification) => void);
 const pendingNotifications: Notifications.Notification[] = [];
 
@@ -90,12 +82,52 @@ const notificationResponseReceivedListener = Notifications.addNotificationRespon
     }
 );
 
+const getSubscriptionKey = (expoPushToken: string) =>
+    expoPushToken.split('[')[1].replace(/\]/g, '');
+
 export default function App() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [expoPushToken, setExpoPushToken] = useState<string>();
+    const [isLoading, setIsLoading] = useState(false);
+    const [isSubscribed, setIsSubscribed] = useState(false);
     const [notification, setNotification] = useState<Notifications.Notification>();
     const notificationListener = useRef<Subscription>();
     const responseListener = useRef<Subscription>();
+
+    const modifyWeatherSubscription = (pushToken: string, isActive: boolean) => {
+        try {
+            setErrorMessage(undefined);
+            setIsLoading(true);
+            firebaseApp
+                .database()
+                .ref(`subscriptions/${getSubscriptionKey(pushToken)}`)
+                .set({ active: isActive, token: pushToken })
+                .then(() => setIsSubscribed(isActive))
+                .catch((error) => setErrorMessage(error.message || error))
+                .finally(() => setIsLoading(false));
+        } catch (error) {
+            setErrorMessage(error.message || error);
+        }
+    };
+
+    const retrieveWeatherSubscription = (pushToken: string) => {
+        try {
+            setIsLoading(true);
+            firebase
+                .database()
+                .ref(`subscriptions/${getSubscriptionKey(pushToken)}`)
+                .once('value')
+                .then((subscriptionSnapshot) => {
+                    console.log(subscriptionSnapshot);
+                    const subscription = subscriptionSnapshot.val();
+                    setIsSubscribed(subscription && subscription.active);
+                })
+                .catch((error) => setErrorMessage(error.message || error))
+                .finally(() => setIsLoading(false));
+        } catch (error) {
+            setErrorMessage(error.message || error);
+        }
+    };
 
     useEffect(() => {
         notificationsHandler = setNotification;
@@ -105,7 +137,14 @@ export default function App() {
             notificationsHandler(pendingNotification);
         }
 
-        registerForPushNotificationsAsync().then(setExpoPushToken).catch(setErrorMessage);
+        registerForPushNotificationsAsync()
+            .then((pushToken) => {
+                setExpoPushToken(pushToken);
+                if (pushToken) {
+                    retrieveWeatherSubscription(pushToken);
+                }
+            })
+            .catch(setErrorMessage);
 
         notificationListener.current = notificationReceivedListener;
 
@@ -131,35 +170,65 @@ export default function App() {
             }}
         >
             <View style={{ alignItems: 'center', marginVertical: 16 }}>
-                <Text style={{ fontWeight: 'bold' }}>Your expo push token:</Text>
+                <Text style={{ fontSize: 22, marginBottom: 20, textAlign: 'center' }}>
+                    Daily weather notification
+                </Text>
+
+                {expoPushToken && (
+                    <View
+                        style={{
+                            alignItems: 'center',
+                            opacity: isLoading ? 0.3 : undefined
+                        }}
+                    >
+                        <TouchableOpacity
+                            onPress={
+                                isLoading
+                                    ? undefined
+                                    : () => modifyWeatherSubscription(expoPushToken, !isSubscribed)
+                            }
+                            style={{
+                                backgroundColor: isSubscribed ? 'lightcoral' : 'lightgreen',
+                                padding: 8
+                            }}
+                        >
+                            <Text>{isSubscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => {
+                                /*  TODO */
+                            }}
+                            style={{ backgroundColor: 'lightblue', padding: 8, marginVertical: 8 }}
+                        >
+                            <Text>Send it now!</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+                <Text style={{ marginTop: 16 }}>Your expo push token:</Text>
                 <Text selectable={true}>{expoPushToken || '-'}</Text>
             </View>
+
+            {errorMessage && <Text style={{ color: 'red' }}>{errorMessage}</Text>}
+
             <View style={{ width: '100%', marginVertical: 16 }}>
                 <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>
                     Notification content
                 </Text>
                 {notification ? (
-                    <JSONTree data={JSON.parse(JSON.stringify(notification))} />
+                    <React.Fragment>
+                        <JSONTree data={JSON.parse(JSON.stringify(notification))} />
+                        <TouchableOpacity
+                            onPress={() => setNotification(undefined)}
+                            style={{ backgroundColor: 'lightcoral', padding: 8, marginVertical: 8 }}
+                        >
+                            <Text style={{ color: 'white', textAlign: 'center' }}>
+                                Clear notification
+                            </Text>
+                        </TouchableOpacity>
+                    </React.Fragment>
                 ) : (
                     <Text style={{ textAlign: 'center' }}>-</Text>
                 )}
-            </View>
-
-            {errorMessage && <Text style={{ color: 'red' }}>{errorMessage}</Text>}
-
-            <View>
-                <TouchableOpacity
-                    onPress={schedulePushNotification}
-                    style={{ backgroundColor: 'lightgreen', padding: 8, marginVertical: 8 }}
-                >
-                    <Text>Press to schedule a notification</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => setNotification(undefined)}
-                    style={{ backgroundColor: 'lightcoral', padding: 8, marginVertical: 8 }}
-                >
-                    <Text style={{ color: 'white', textAlign: 'center' }}>Clear notification</Text>
-                </TouchableOpacity>
             </View>
         </ScrollView>
     );
