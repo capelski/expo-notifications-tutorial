@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import firebase from 'firebase';
 import React, { useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import JSONTree from 'react-native-json-tree';
 import firebaseConfig from './firebase-config.json';
 
@@ -216,6 +216,25 @@ export default function App() {
                 </Text>
                 {notification ? (
                     <React.Fragment>
+                        <View
+                            style={{
+                                alignItems: 'center',
+                                flexDirection: 'row',
+                                justifyContent: 'center'
+                            }}
+                        >
+                            <Image
+                                height={96}
+                                source={{
+                                    uri: notification.request.content.data.weatherIcon as string
+                                }}
+                                style={{ height: 96, width: 96 }}
+                                width={96}
+                            />
+                            <Text style={{ fontSize: 22 }}>
+                                {notification.request.content.data.temperature as string} ºC
+                            </Text>
+                        </View>
                         <JSONTree data={JSON.parse(JSON.stringify(notification))} />
                         <TouchableOpacity
                             onPress={() => setNotification(undefined)}
