@@ -118,9 +118,25 @@ export default function App() {
                 .ref(`subscriptions/${getSubscriptionKey(pushToken)}`)
                 .once('value')
                 .then((subscriptionSnapshot) => {
-                    console.log(subscriptionSnapshot);
                     const subscription = subscriptionSnapshot.val();
                     setIsSubscribed(subscription && subscription.active);
+                })
+                .catch((error) => setErrorMessage(error.message || error))
+                .finally(() => setIsLoading(false));
+        } catch (error) {
+            setErrorMessage(error.message || error);
+        }
+    };
+
+    const testSubscription = (pushToken: string) => {
+        try {
+            setErrorMessage(undefined);
+            setIsLoading(true);
+            fetch(`${firebaseConfig.TEST_NOTIFICATION_ENDPOINT}?token=${pushToken}`)
+                .then((response) => {
+                    if (!response.ok) {
+                        setErrorMessage('Something went wrong 🤔');
+                    }
                 })
                 .catch((error) => setErrorMessage(error.message || error))
                 .finally(() => setIsLoading(false));
@@ -195,12 +211,10 @@ export default function App() {
                             <Text>{isSubscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={() => {
-                                /*  TODO */
-                            }}
+                            onPress={isLoading ? undefined : () => testSubscription(expoPushToken)}
                             style={{ backgroundColor: 'lightblue', padding: 8, marginVertical: 8 }}
                         >
-                            <Text>Send it now!</Text>
+                            <Text>Send it now</Text>
                         </TouchableOpacity>
                     </View>
                 )}

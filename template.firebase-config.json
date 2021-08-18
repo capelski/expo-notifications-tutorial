@@ -2,5 +2,6 @@
     "API_KEY": "Firebase config value",
     "AUTH_DOMAIN": "Firebase config value",
     "DATABASE_URL": "Firebase config value",
-    "STORAGE_BUCKET": "Firebase config value"
+    "STORAGE_BUCKET": "Firebase config value",
+    "TEST_NOTIFICATION_ENDPOINT": "Firebase testNotification function url"
 }
