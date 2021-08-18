@@ -1,20 +1,14 @@
 import { Subscription } from '@unimodules/core';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
-import firebase from 'firebase';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import JSONTree from 'react-native-json-tree';
-import firebaseConfig from './firebase-config.json';
-
-const firebaseApp =
-    firebase.apps[0] || // To prevent Expo Go client errors
-    firebase.initializeApp({
-        apiKey: firebaseConfig.API_KEY,
-        authDomain: firebaseConfig.AUTH_DOMAIN,
-        databaseURL: firebaseConfig.DATABASE_URL,
-        storageBucket: firebaseConfig.STORAGE_BUCKET
-    });
+import {
+    modifyWeatherSubscription,
+    retrieveWeatherSubscription,
+    testSubscription
+} from './server-operations';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -82,9 +76,6 @@ const notificationResponseReceivedListener = Notifications.addNotificationRespon
     }
 );
 
-const getSubscriptionKey = (expoPushToken: string) =>
-    expoPushToken.split('[')[1].replace(/\]/g, '');
-
 export default function App() {
     const [errorMessage, setErrorMessage] = useState<string>();
     const [expoPushToken, setExpoPushToken] = useState<string>();
@@ -93,57 +84,6 @@ export default function App() {
     const [notification, setNotification] = useState<Notifications.Notification>();
     const notificationListener = useRef<Subscription>();
     const responseListener = useRef<Subscription>();
-
-    const modifyWeatherSubscription = (pushToken: string, isActive: boolean) => {
-        try {
-            setErrorMessage(undefined);
-            setIsLoading(true);
-            firebaseApp
-                .database()
-                .ref(`subscriptions/${getSubscriptionKey(pushToken)}`)
-                .set({ active: isActive, token: pushToken })
-                .then(() => setIsSubscribed(isActive))
-                .catch((error) => setErrorMessage(error.message || error))
-                .finally(() => setIsLoading(false));
-        } catch (error) {
-            setErrorMessage(error.message || error);
-        }
-    };
-
-    const retrieveWeatherSubscription = (pushToken: string) => {
-        try {
-            setIsLoading(true);
-            firebase
-                .database()
-                .ref(`subscriptions/${getSubscriptionKey(pushToken)}`)
-                .once('value')
-                .then((subscriptionSnapshot) => {
-                    const subscription = subscriptionSnapshot.val();
-                    setIsSubscribed(subscription && subscription.active);
-                })
-                .catch((error) => setErrorMessage(error.message || error))
-                .finally(() => setIsLoading(false));
-        } catch (error) {
-            setErrorMessage(error.message || error);
-        }
-    };
-
-    const testSubscription = (pushToken: string) => {
-        try {
-            setErrorMessage(undefined);
-            setIsLoading(true);
-            fetch(`${firebaseConfig.TEST_NOTIFICATION_ENDPOINT}?token=${pushToken}`)
-                .then((response) => {
-                    if (!response.ok) {
-                        setErrorMessage('Something went wrong 🤔');
-                    }
-                })
-                .catch((error) => setErrorMessage(error.message || error))
-                .finally(() => setIsLoading(false));
-        } catch (error) {
-            setErrorMessage(error.message || error);
-        }
-    };
 
     useEffect(() => {
         notificationsHandler = setNotification;
@@ -157,7 +97,11 @@ export default function App() {
             .then((pushToken) => {
                 setExpoPushToken(pushToken);
                 if (pushToken) {
-                    retrieveWeatherSubscription(pushToken);
+                    retrieveWeatherSubscription(pushToken, {
+                        setErrorMessage,
+                        setIsLoading,
+                        setIsSubscribed
+                    });
                 }
             })
             .catch(setErrorMessage);
@@ -171,8 +115,6 @@ export default function App() {
                 Notifications.removeNotificationSubscription(notificationListener.current);
             responseListener.current &&
                 Notifications.removeNotificationSubscription(responseListener.current);
-
-            firebaseApp.delete();
         };
     }, []);
 
@@ -201,7 +143,12 @@ export default function App() {
                             onPress={
                                 isLoading
                                     ? undefined
-                                    : () => modifyWeatherSubscription(expoPushToken, !isSubscribed)
+                                    : () =>
+                                          modifyWeatherSubscription(expoPushToken, !isSubscribed, {
+                                              setErrorMessage,
+                                              setIsLoading,
+                                              setIsSubscribed
+                                          })
                             }
                             style={{
                                 backgroundColor: isSubscribed ? 'lightcoral' : 'lightgreen',
@@ -211,7 +158,16 @@ export default function App() {
                             <Text>{isSubscribed ? 'Unsubscribe' : 'Subscribe'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            onPress={isLoading ? undefined : () => testSubscription(expoPushToken)}
+                            onPress={
+                                isLoading
+                                    ? undefined
+                                    : () =>
+                                          testSubscription(expoPushToken, {
+                                              setErrorMessage,
+                                              setIsLoading,
+                                              setIsSubscribed
+                                          })
+                            }
                             style={{ backgroundColor: 'lightblue', padding: 8, marginVertical: 8 }}
                         >
                             <Text>Send it now</Text>
