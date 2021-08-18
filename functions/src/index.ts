@@ -20,9 +20,9 @@ export const dailyWeatherNotification = functions.pubsub
                     functions.logger.log(`No subscriptions on ${new Date().toLocaleDateString()}`);
                     return null;
                 } else {
-                    const pushTokens = Object.keys(subscriptions).filter(
-                        (pushToken) => subscriptions[pushToken] === true
-                    );
+                    const pushTokens = Object.keys(subscriptions)
+                        .filter((subscriptionKey) => subscriptions[subscriptionKey].active === true)
+                        .map((subscriptionKey) => subscriptions[subscriptionKey].token);
 
                     if (pushTokens.length === 0) {
                         functions.logger.log(
