@@ -18,7 +18,7 @@ Notifications.setNotificationHandler({
     })
 });
 
-const registerForPushNotificationsAsync = () => {
+const getPushToken = () => {
     if (!Constants.isDevice) {
         return Promise.reject('Must use physical device for Push Notifications');
     }
@@ -36,18 +36,7 @@ const registerForPushNotificationsAsync = () => {
                 }
                 return Notifications.getExpoPushTokenAsync();
             })
-            .then((tokenData) => {
-                if (Platform.OS === 'android') {
-                    Notifications.setNotificationChannelAsync('default', {
-                        name: 'default',
-                        importance: Notifications.AndroidImportance.MAX,
-                        vibrationPattern: [0, 250, 250, 250],
-                        lightColor: '#FF231F7C'
-                    });
-                }
-
-                return tokenData.data;
-            });
+            .then((tokenData) => tokenData.data);
     } catch (error) {
         return Promise.reject("Couldn't check notifications permissions");
     }
@@ -93,7 +82,7 @@ export default function App() {
             notificationsHandler(pendingNotification);
         }
 
-        registerForPushNotificationsAsync()
+        getPushToken()
             .then((pushToken) => {
                 setExpoPushToken(pushToken);
                 if (pushToken) {
