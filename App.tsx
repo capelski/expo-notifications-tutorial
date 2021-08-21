@@ -2,7 +2,7 @@ import { Subscription } from '@unimodules/core';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import React, { useEffect, useRef, useState } from 'react';
-import { Image, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import JSONTree from 'react-native-json-tree';
 import {
     modifyWeatherSubscription,
